@@ -63,6 +63,12 @@ func main() {
 					},
 					Action: files.Add,
 				},
+				{
+					Name:      "list",
+					Usage:     "list files",
+					ArgsUsage: "tag [tag ...]",
+					Action:    files.List,
+				},
 			},
 		},
 	}
