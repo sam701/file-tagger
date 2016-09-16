@@ -38,19 +38,18 @@ func Init(c *cli.Context) error {
     );
 
     create table files(
-        hash varchar(32) primary key,
-        path varchar(256),
+        path varchar(256) primary key,
 		name varchar(64),
 		period varchar(32),
         creation_timestamp integer
     );
 
     create table file_tags(
-        tag varchar(128),
-        file_hash varchar(32)
+        file_rowid integer,
+        tag_rowid integer
     );
 
-    create index tags_ix on file_tags(tag);
+    create index tags_ix on file_tags(tag_rowid);
     `)
 
 	fmt.Println("Storage has been initialsed:", storage.storagePath)

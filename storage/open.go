@@ -18,6 +18,10 @@ func (s *Storage) ContentPath(contentPath string) string {
 	return path.Join(s.storagePath, contentPath)
 }
 
+func (s *Storage) Close() {
+	s.DB.Close()
+}
+
 func (s *Storage) indexDbPath() string {
 	return s.ContentPath("index.db")
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 
+	"github.com/sam701/file-tagger/commands/files"
 	"github.com/sam701/file-tagger/commands/tags"
 	"github.com/sam701/file-tagger/storage"
 	"github.com/urfave/cli"
@@ -46,8 +47,21 @@ func main() {
 			Usage: "Manage files",
 			Subcommands: []cli.Command{
 				{
-					Name:  "add",
-					Usage: "Add files",
+					Name:      "add",
+					Usage:     "Add files",
+					ArgsUsage: "file [file ...]",
+
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "period, p",
+							Usage: "`PERIOD` to add to the provided files in form year/month",
+						},
+						cli.StringSliceFlag{
+							Name:  "tag, t",
+							Usage: "`TAG` to add to the files",
+						},
+					},
+					Action: files.Add,
 				},
 			},
 		},
