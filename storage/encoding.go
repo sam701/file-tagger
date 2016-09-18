@@ -28,10 +28,10 @@ func (e *encoder) writeString(s string) {
 	}
 }
 
-func (e *encoder) writeStringArray(arr []string) {
+func (e *encoder) writeTags(arr []tagIdType) {
 	e.write(uint8(len(arr)))
 	for _, s := range arr {
-		e.writeString(s)
+		e.write(s)
 	}
 }
 
@@ -39,12 +39,21 @@ func (e *encoder) writeFile(f *StorageFile) {
 	e.write(f.Id)
 	e.writeString(f.Name)
 	e.writeString(f.Period)
-	e.writeStringArray(f.Tags)
+	e.writeTags(f.Tags)
 	e.write(f.CreationTimestamp)
 }
 
 type decoder struct {
 	r io.Reader
+}
+
+func (d *decoder) readTagIdType() tagIdType {
+	var x tagIdType
+	err := binary.Read(d.r, byteOrder, &x)
+	if err != nil {
+		log.Fatalln("ERROR", err)
+	}
+	return x
 }
 
 func (d *decoder) readUint64() uint64 {
@@ -79,12 +88,13 @@ func (d *decoder) readString() string {
 	return string(buf)
 }
 
-func (d *decoder) readStringArray() []string {
+func (d *decoder) readTags() []tagIdType {
 	size := d.readUint8()
-	out := make([]string, size)
+	out := make([]tagIdType, size)
 
-	for ix := 0; ix < int(size); ix++ {
-		out[ix] = d.readString()
+	err := binary.Read(d.r, byteOrder, out)
+	if err != nil {
+		log.Fatalln("ERROR", err)
 	}
 
 	return out
@@ -95,7 +105,7 @@ func (d *decoder) readFile() *StorageFile {
 	s.Id = d.readUint64()
 	s.Name = d.readString()
 	s.Period = d.readString()
-	s.Tags = d.readStringArray()
+	s.Tags = d.readTags()
 	s.CreationTimestamp = d.readUint64()
 	return &s
 }

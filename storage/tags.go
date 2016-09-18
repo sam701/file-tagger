@@ -9,12 +9,14 @@ func (s *Storage) GetTags() []string {
 }
 
 func (s *Storage) AddTag(tag string) {
-	if s.allowedTags[tag] {
+	if _, exists := s.allowedTags[tag]; exists {
 		return
 	}
 
 	enc := &encoder{s.metaFile}
 
 	enc.write(opAddAllowedTag)
+	s.maxTagId++
+	enc.write(s.maxTagId)
 	enc.writeString(tag)
 }

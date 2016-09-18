@@ -10,12 +10,18 @@ import (
 	"github.com/urfave/cli"
 )
 
+type tagIdType uint16
+
 type Storage struct {
 	storagePath string
-	allowedTags map[string]bool
+	allowedTags map[string]tagIdType
+	tagNames    map[tagIdType]string
 	files       map[uint64]*StorageFile
-	maxId       uint64
-	metaFile    *os.File
+
+	maxFileId uint64
+	maxTagId  tagIdType
+
+	metaFile *os.File
 }
 
 func (s *Storage) Close() {
@@ -31,17 +37,18 @@ const (
 	opRemoveFile
 	opAddTagToFile
 	opRemoveTagFromFile
+	opRenameTag
 )
 
 type StorageFile struct {
 	Id                uint64
 	Name              string
 	Period            string
-	Tags              []string
+	Tags              []tagIdType
 	CreationTimestamp uint64
 }
 
-func (f *StorageFile) removeTag(tag string) {
+func (f *StorageFile) removeTag(tag tagIdType) {
 	for i, t := range f.Tags {
 		if t == tag {
 			f.Tags[i] = f.Tags[len(f.Tags)-1]
@@ -50,14 +57,15 @@ func (f *StorageFile) removeTag(tag string) {
 	}
 }
 
-func (f *StorageFile) Match(tags []string) bool {
+func (f *StorageFile) Match(tags []string, tagIdMap map[string]tagIdType) bool {
 	if len(f.Tags) < len(tags) {
 		return false
 	}
 	for _, ta := range tags {
 		match := false
+		tagId := tagIdMap[ta]
 		for _, t := range f.Tags {
-			if t == ta {
+			if t == tagId {
 				match = true
 				break
 			}
@@ -80,7 +88,8 @@ func (s *Storage) metaFilePath() string {
 func Open(c *cli.Context) *Storage {
 	s := &Storage{
 		storagePath: c.GlobalString("storage-dir"),
-		allowedTags: map[string]bool{},
+		allowedTags: map[string]tagIdType{},
+		tagNames:    map[tagIdType]string{},
 		files:       map[uint64]*StorageFile{},
 	}
 	if _, err := os.Stat(s.storagePath); err != nil {
@@ -112,27 +121,30 @@ func (s *Storage) readEntries() {
 
 		switch op {
 		case opAddAllowedTag:
+			tagId := dec.readTagIdType()
 			tag := dec.readString()
-			s.allowedTags[tag] = true
+			s.allowedTags[tag] = tagId
+			s.tagNames[tagId] = tag
+			s.maxTagId = tagId
 		case opRemoveAllowedTag:
 			tag := dec.readString()
 			delete(s.allowedTags, tag)
 		case opAddFile:
 			file := dec.readFile()
 			s.files[file.Id] = file
-			s.maxId = file.Id
+			s.maxFileId = file.Id
 		case opRemoveFile:
 			id := dec.readUint64()
 			delete(s.files, id)
 		case opAddTagToFile:
 			fileId := dec.readUint64()
-			tag := dec.readString()
+			tagId := dec.readTagIdType()
 			file := s.files[fileId]
-			file.Tags = append(file.Tags, tag)
+			file.Tags = append(file.Tags, tagId)
 		case opRemoveTagFromFile:
 			fileId := dec.readUint64()
-			tag := dec.readString()
-			s.files[fileId].removeTag(tag)
+			tagId := dec.readTagIdType()
+			s.files[fileId].removeTag(tagId)
 		default:
 			log.Fatalln("Unkwnown op:", op)
 		}

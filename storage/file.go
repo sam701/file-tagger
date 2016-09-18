@@ -14,7 +14,7 @@ func (s *Storage) AddFile(filePath, period string, tags []string) {
 		log.Fatalln("Empty tag list is not allowed")
 	}
 	for _, t := range tags {
-		if !s.allowedTags[t] {
+		if _, exists := s.allowedTags[t]; !exists {
 			log.Fatalln("Tag", t, "is not allowed")
 		}
 	}
@@ -29,12 +29,17 @@ func (s *Storage) AddFile(filePath, period string, tags []string) {
 
 	copyFile(contentStoragePath, filePath)
 
-	s.maxId++
+	tagIds := make([]tagIdType, len(tags))
+	for i, t := range tags {
+		tagIds[i] = s.allowedTags[t]
+	}
+
+	s.maxFileId++
 	s.writeFileEntry(&StorageFile{
-		Id:                s.maxId,
+		Id:                s.maxFileId,
 		Name:              fileName,
 		Period:            period,
-		Tags:              tags,
+		Tags:              tagIds,
 		CreationTimestamp: uint64(time.Now().Unix()),
 	})
 }
@@ -72,12 +77,17 @@ type FileData struct {
 func (s *Storage) GetFiles(tags []string) []*FileData {
 	out := []*FileData{}
 	for _, f := range s.files {
-		if f.Match(tags) {
+		if f.Match(tags, s.allowedTags) {
+			tagNames := make([]string, len(f.Tags))
+			for i, tagId := range f.Tags {
+				tagNames[i] = s.tagNames[tagId]
+			}
+
 			out = append(out, &FileData{
 				Id:           f.Id,
 				Name:         f.Name,
 				Period:       f.Period,
-				Tags:         f.Tags,
+				Tags:         tagNames,
 				CreationDate: time.Unix(int64(f.CreationTimestamp), 0),
 			})
 		}
