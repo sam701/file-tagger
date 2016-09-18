@@ -41,6 +41,15 @@ type StorageFile struct {
 	CreationTimestamp uint64
 }
 
+func (f *StorageFile) removeTag(tag string) {
+	for i, t := range f.Tags {
+		if t == tag {
+			f.Tags[i] = f.Tags[len(f.Tags)-1]
+			f.Tags = f.Tags[:len(f.Tags)-1]
+		}
+	}
+}
+
 func (f *StorageFile) Match(tags []string) bool {
 	if len(f.Tags) < len(tags) {
 		return false
@@ -116,7 +125,14 @@ func (s *Storage) readEntries() {
 			id := dec.readUint64()
 			delete(s.files, id)
 		case opAddTagToFile:
+			fileId := dec.readUint64()
+			tag := dec.readString()
+			file := s.files[fileId]
+			file.Tags = append(file.Tags, tag)
 		case opRemoveTagFromFile:
+			fileId := dec.readUint64()
+			tag := dec.readString()
+			s.files[fileId].removeTag(tag)
 		default:
 			log.Fatalln("Unkwnown op:", op)
 		}
