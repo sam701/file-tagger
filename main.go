@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"os"
 
 	"github.com/sam701/file-tagger/commands/files"
@@ -11,6 +12,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	app := cli.NewApp()
 	app.Version = "0.1.0"
 	app.Flags = []cli.Flag{

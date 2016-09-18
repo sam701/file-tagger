@@ -9,21 +9,18 @@ import (
 
 func Print(c *cli.Context) error {
 	st := storage.Open(c)
-	rows, _ := st.DB.Query("select name from tags order by name")
-	for rows.Next() {
-		var name string
-		rows.Scan(&name)
-		fmt.Println(name)
+	for _, t := range st.GetTags() {
+		fmt.Println(t)
 	}
 	return nil
 }
 
 func Add(c *cli.Context) error {
 	st := storage.Open(c)
-	defer st.DB.Close()
+	defer st.Close()
 
 	for _, tag := range c.Args() {
-		st.DB.MustExec("insert into tags (name) values(?)", tag)
+		st.AddTag(tag)
 		fmt.Println("Inserted tag:", tag)
 	}
 

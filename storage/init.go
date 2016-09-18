@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/urfave/cli"
 )
 
@@ -15,7 +13,7 @@ func Init(c *cli.Context) error {
 		storagePath: c.GlobalString("storage-dir"),
 	}
 
-	if _, err := os.Stat(storage.indexDbPath()); err == nil {
+	if _, err := os.Stat(storage.metaFilePath()); err == nil {
 		fmt.Println("Storage", storage.storagePath, "was already initialized")
 		return nil
 	}
@@ -25,32 +23,13 @@ func Init(c *cli.Context) error {
 		log.Fatalln("ERROR", err)
 	}
 
-	db, err := sqlx.Connect("sqlite3", storage.indexDbPath())
+	f, err := os.OpenFile(storage.metaFilePath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Fatalln("ERROR", err)
+		log.Fatalln("ERROR: cannot open file:", err)
 	}
+	defer f.Close()
 
-	defer db.Close()
-
-	db.MustExec(`
-    create table tags(
-        name varchar(128) primary key
-    );
-
-    create table files(
-        path varchar(256) primary key,
-		name varchar(64),
-		period varchar(32),
-        creation_timestamp integer
-    );
-
-    create table file_tags(
-        file_rowid integer,
-        tag_rowid integer
-    );
-
-    create index tags_ix on file_tags(tag_rowid);
-    `)
+	(&encoder{f}).write(magick)
 
 	fmt.Println("Storage has been initialsed:", storage.storagePath)
 
