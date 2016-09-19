@@ -1,6 +1,7 @@
 package tags
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/sam701/file-tagger/storage"
@@ -25,4 +26,17 @@ func Add(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func Delete(c *cli.Context) error {
+	st := storage.Open(c)
+	defer st.Close()
+
+	tagToDelete := c.Args().First()
+	files := st.GetFiles([]string{tagToDelete})
+	if len(files) > 0 {
+		return errors.New("There files with tag: " + tagToDelete)
+	}
+
+	return st.DeleteTag(tagToDelete)
 }

@@ -127,8 +127,10 @@ func (s *Storage) readEntries() {
 			s.tagNames[tagId] = tag
 			s.maxTagId = tagId
 		case opRemoveAllowedTag:
-			tag := dec.readString()
+			tagId := dec.readTagIdType()
+			tag := s.tagNames[tagId]
 			delete(s.allowedTags, tag)
+			delete(s.tagNames, tagId)
 		case opAddFile:
 			file := dec.readFile()
 			s.files[file.Id] = file
