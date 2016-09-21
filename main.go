@@ -77,7 +77,13 @@ func main() {
 					Name:      "list",
 					Usage:     "list files",
 					ArgsUsage: "tag [tag ...]",
-					Action:    files.List,
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "period, p",
+							Usage: "`PERIOD` to search",
+						},
+					},
+					Action: files.List,
 				},
 			},
 		},

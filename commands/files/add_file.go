@@ -16,11 +16,5 @@ func Add(c *cli.Context) error {
 	}
 
 	st := storage.Open(c)
-	defer st.Close()
-
-	for _, file := range c.Args() {
-		st.AddFile(file, period, tags)
-	}
-
-	return nil
+	return st.AddFiles(c.Args(), period, tags)
 }

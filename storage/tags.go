@@ -3,35 +3,48 @@ package storage
 import "errors"
 
 func (s *Storage) GetTags() []string {
+	content := s.readEntries(nil)
+
 	out := []string{}
-	for t, _ := range s.allowedTags {
+	for t, _ := range content.tags.allowedTags {
 		out = append(out, t)
 	}
 	return out
 }
 
-func (s *Storage) AddTag(tag string) {
-	if _, exists := s.allowedTags[tag]; exists {
-		return
+func (s *Storage) AddTags(tags []string) error {
+	content, f := s.openAndReadEntries()
+	defer f.Close()
+
+	for _, newTag := range tags {
+		if _, exists := content.tags.allowedTags[newTag]; !exists {
+			content.tags.maxTagId++
+			content.tags.allowedTags[newTag] = content.tags.maxTagId
+		}
 	}
 
-	enc := &encoder{s.metaFile}
+	if len(content.tags.allowedTags) == len(content.tags.tagNames) {
+		return errors.New("No new tags")
+	}
 
-	enc.write(opAddAllowedTag)
-	s.maxTagId++
-	enc.write(s.maxTagId)
-	enc.writeString(tag)
+	enc := &encoder{f}
+	enc.write(opSetAllowedTags)
+	enc.writeAllowedTagsMap(content.tags.allowedTags)
+	return nil
 }
 
-func (s *Storage) DeleteTag(tag string) error {
-	tagId, exists := s.allowedTags[tag]
-	if !exists {
-		return errors.New("Tag " + tag + " does not exist")
+func (s *Storage) DeleteTag(tagToDelete string) error {
+	content, f := s.openAndReadEntries()
+	defer f.Close()
+
+	delete(content.tags.allowedTags, tagToDelete)
+
+	if len(content.tags.allowedTags) == len(content.tags.tagNames) {
+		return errors.New("No tags have been deleted")
 	}
 
-	enc := &encoder{s.metaFile}
-
-	enc.write(opRenameTag)
-	enc.write(tagId)
+	enc := &encoder{f}
+	enc.write(opSetAllowedTags)
+	enc.writeAllowedTagsMap(content.tags.allowedTags)
 	return nil
 }
